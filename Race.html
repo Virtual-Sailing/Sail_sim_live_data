@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Data Viewer</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #00274d; /* Dark blue background */
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background-color: #3c3c3c; /* Dark grey container background */
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            width: 80%;
+            max-width: 800px;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #f0f0f0; /* Light grey for header */
+            text-align: center;
+        }
+        #status {
+            font-size: 16px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #ccc; /* Lighter grey for status text */
+        }
+        #data {
+            white-space: pre-wrap;
+            border: 1px solid #ddd;
+            padding: 15px;
+            height: 400px;
+            overflow-y: auto;
+            background-color: #fff; /* White data area */
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            border-radius: 8px;
+            color: #333; /* Dark text for the data */
+        }
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #aaa; /* Grey footer text */
+            margin-top: 20px;
+        }
+        button {
+            display: block;
+            margin: 0 auto;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            background-color: #007bff; /* Vibrant blue button */
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+        }
+        button:disabled {
+            background-color: #555; /* Greyed out when disabled */
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>WebSocket Data Viewer</h1>
+        <div id="status">Click "Start Receiving Race Data" to connect.</div>
+        <div id="data">Data will be displayed here...</div>
+        <button id="startButton">Start Receiving Race Data</button>
+        <div class="footer">Data updates automatically in real-time once started.</div>
+    </div>
+
+    <script>
+        let socket;  // WebSocket connection will be stored here
+
+        // DOM elements to update
+        const statusEl = document.getElementById('status');
+        const dataEl = document.getElementById('data');
+        const startButton = document.getElementById('startButton');
+
+        // Replace this URL with your WebSocket server's public IP or domain and port
+        const websocketURL = "ws://3.92.183.187:8765";  // WebSocket server address
+        
+        // When Start button is clicked
+        startButton.addEventListener('click', function() {
+            startReceivingData();
+        });
+
+        function startReceivingData() {
+            // Disable the start button after it's clicked
+            startButton.disabled = true;
+
+            // Establish WebSocket connection
+            socket = new WebSocket(websocketURL);
+            
+            // When connection is opened
+            socket.onopen = function(event) {
+                statusEl.textContent = 'Connected to WebSocket server';
+                dataEl.textContent = 'Waiting for race data...';
+            };
+            
+            // When receiving a message (data from server)
+            socket.onmessage = function(event) {
+                // Display only the most recent packet
+                const message = event.data;
+                try {
+                    const jsonData = JSON.parse(message); // Parse if it's JSON
+                    dataEl.textContent = JSON.stringify(jsonData, null, 2); // Show formatted JSON
+                } catch (e) {
+                    dataEl.textContent = message; // Show raw data if not JSON
+                }
+            };
+            
+            // When the connection is closed
+            socket.onclose = function(event) {
+                statusEl.textContent = 'WebSocket connection closed';
+                dataEl.textContent = 'Connection lost...';
+                startButton.disabled = false;  // Enable the button again
+            };
+            
+            // When there is an error
+            socket.onerror = function(event) {
+                statusEl.textContent = 'Error connecting to WebSocket';
+                dataEl.textContent = 'Error occurred. Please try again.';
+                startButton.disabled = false;  // Enable the button again
+            };
+        }
+    </script>
+</body>
+</html>
